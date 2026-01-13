@@ -9,7 +9,8 @@
     "typecheck": "bun tsc --noEmit",
     "test": "bun test",
     "test:youtube": "bun test tests/scrapers/youtube.test.ts",
-    "test:twitter": "bun test tests/scrapers/twitter.test.ts"
+    "test:twitter": "bun test tests/scrapers/twitter.test.ts",
+    "test:smol": "bun test tests/scrapers/smol.test.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",
@@ -25,6 +26,7 @@
     "@ai-sdk/cerebras": "^2.0.8",
     "ai": "^6.0.30",
     "apify-client": "^2.21.0",
+    "cheerio": "^1.1.2",
     "eslint-plugin-neverthrow": "^1.1.4",
     "neverthrow": "^8.2.0",
     "zod": "^4.3.5"

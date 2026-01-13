@@ -13,7 +13,7 @@ const TweetSchema = z.object({
     type: z.literal("tweet"),
     id: z.union([z.number(), z.string()]),
     text: z.string(),
-    created_at: z.string().transform((val) => new Date(val)),
+    createdAt: z.string(),
     url: z.string(),
     author: TweetAuthorSchema,
     likeCount: z.number(),
@@ -21,7 +21,19 @@ const TweetSchema = z.object({
     replyCount: z.number(),
 });
 
-export type Tweet = z.infer<typeof TweetSchema>;
+const TweetSchemaWithDate = TweetSchema.transform((data) => ({
+    type: data.type,
+    id: data.id,
+    text: data.text,
+    created_at: new Date(data.createdAt) as Date,
+    url: data.url,
+    author: data.author,
+    likeCount: data.likeCount,
+    retweetCount: data.retweetCount,
+    replyCount: data.replyCount,
+}));
+
+export type Tweet = z.infer<typeof TweetSchemaWithDate>;
 
 const RawItemSchema = z.object({ type: z.string() }).passthrough();
 
@@ -105,11 +117,11 @@ export function scrapeTweets(params: TwitterSearchParams): ResultAsync<Tweet[], 
                 if (!rawParse.success || rawParse.data.type !== "tweet") {
                     continue;
                 }
-                const tweetParse = TweetSchema.safeParse(item);
+                const tweetParse = TweetSchemaWithDate.safeParse(item);
                 if (tweetParse.success) {
                     tweets.push(tweetParse.data);
-                } else {
-                    console.log('Failed to parse tweet:', tweetParse.error.message);
+                } else if (tweetParse.error) {
+                    console.log('Failed to parse tweet:', JSON.stringify(tweetParse.error.issues));
                 }
             }
             return okAsync(tweets);
