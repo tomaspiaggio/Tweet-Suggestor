@@ -295,9 +295,9 @@ i can't believe this worked btw
 
 
 ## Tweet Worthy
-- Bullet list with: **Title** (Source) - 1 sentence summary. Include URL.
-- Add **Image Suggestion** with a concrete visual to look for (e.g., "chart of X", "photo of Y", "screenshot of Z") and, if available, a supporting image URL.
-- Add **Supporting Links**: 1-2 links that support key claims or provide context.
+- Bullet list with: **Title** (Sources of inspiration) - 1 sentence summary. Include URL.
+- Add **Image Suggestion** only when it adds value (concrete visual to look for, optional image URL).
+- Add **Supporting Links** only when they add value (1-2 links to support key claims).
 
 ## Not Tweet Worthy
 - Bullet list with: **Title** (Source) - short reason.
@@ -307,8 +307,8 @@ For each draft tweet include:
 - **Tweet**: one sentence
 - **Motivation**: why this is worth tweeting
 - **Avoiding Redundancy**: how this differs from common takes
-- **Evidence Links**: 1-2 URLs backing the claim
-- **Image Suggestion**: concrete visual to look for
+- **Evidence Links**: 1-2 URLs backing the claim, only when valuable
+- **Image Suggestion**: concrete visual to look for, only when valuable
 
 Provide 3-5 draft tweets for the best items.
 
