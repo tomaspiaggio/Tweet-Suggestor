@@ -13,87 +13,72 @@ export type SmolArticle = z.infer<typeof SmolArticleSchema>;
 
 function htmlToMarkdown(html: string): string {
     const $ = cheerio.load(html);
-    let markdown = '';
 
-    const root = $.root();
-    const children = root[0]?.children;
-    if (!children) {
-        return '';
-    }
+    $('script, style, noscript').remove();
 
-    function processElement(el: any): string {
-        if (!el) return '';
+    $('nav, header, footer, aside, .comments, .comment, #comments, .navigation, .breadcrumb').remove();
+
+    function extractText(element: cheerio.Cheerio<any>, depth: number = 0): string {
+        let text = '';
+        const maxDepth = 50;
         
-        if (el.type === 'text') {
-            return (el.data || '').trim();
+        if (depth > maxDepth) {
+            return text;
         }
-
-        if (!el.tagName) return '';
-
-        const $el = $(el);
-        const text = $el.contents().map((idx: number, child: any) => processElement(child)).get().join('');
-        const tagName = el.tagName.toLowerCase();
-
-        switch (tagName) {
-            case 'h1':
-                return `# ${text}\n\n`;
-            case 'h2':
-                return `## ${text}\n\n`;
-            case 'h3':
-                return `### ${text}\n\n`;
-            case 'h4':
-                return `#### ${text}\n\n`;
-            case 'h5':
-                return `##### ${text}\n\n`;
-            case 'h6':
-                return `###### ${text}\n\n`;
-            case 'p':
-                return `${text}\n\n`;
-            case 'a':
-                const href = $el.attr('href');
-                const linkText = $el.text();
-                return href ? `[${linkText}](${href})` : linkText;
-            case 'blockquote':
-                return `> ${text.split('\n').join('\n> ')}\n\n`;
-            case 'ul':
-                const ulItems = $el.children('li').map((idx: number, li: any) => {
-                    return `- ${processElement(li)}`;
-                }).get().join('\n');
-                return `${ulItems}\n\n`;
-            case 'ol':
-                const olItems = $el.children('li').map((idx: number, li: any) => {
-                    return `${idx + 1}. ${processElement(li)}`;
-                }).get().join('\n');
-                return `${olItems}\n\n`;
-            case 'strong':
-            case 'b':
-                return `**${text}**`;
-            case 'em':
-            case 'i':
-                return `*${text}*`;
-            case 'code':
-                return `\`${$el.text()}\``;
-            case 'pre':
-                const code = $el.find('code').text() || $el.text();
-                return `\`\`\`\n${code}\n\`\`\`\n\n`;
-            case 'img':
-                const src = $el.attr('src');
-                const alt = $el.attr('alt') || '';
-                return src ? `![${alt}](${src})\n\n` : '';
-            case 'div':
-            case 'span':
-            case 'section':
-                return text;
-            default:
-                return text;
-        }
+        
+        element.contents().each((_, child) => {
+            if (child.type === 'text') {
+                const nodeText = $(child).text().trim();
+                if (nodeText.length > 0 && nodeText.length < 10000) {
+                    text += nodeText + ' ';
+                }
+            } else if (child.type === 'tag') {
+                const $child = $(child);
+                const tagName = child.tagName?.toLowerCase();
+                
+                if (['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(tagName || '')) {
+                    const level = parseInt(tagName?.replace('h', '') || '0');
+                    text += '\n' + '#'.repeat(level) + ' ' + extractText($child, depth + 1).trim() + '\n\n';
+                } else if (tagName === 'p') {
+                    const paragraphText = extractText($child, depth + 1).trim();
+                    if (paragraphText.length > 0) {
+                        text += paragraphText + '\n\n';
+                    }
+                } else if (tagName === 'li') {
+                    text += '- ' + extractText($child, depth + 1).trim() + '\n';
+                } else if (['ul', 'ol', 'div', 'section', 'blockquote', 'cite', 'strong', 'em', 'span', 'article', 'main'].includes(tagName || '')) {
+                    text += extractText($child, depth + 1);
+                } else if (tagName === 'a' && $child.attr('href')) {
+                    const href = $child.attr('href');
+                    const linkText = extractText($child, depth + 1).trim();
+                    if (href && !href.includes('javascript:') && !href.includes('#')) {
+                        text += `[${linkText}](${href}) `;
+                    } else {
+                        text += linkText + ' ';
+                    }
+                } else if (tagName === 'code' && !$child.find('pre').length) {
+                    text += '`' + $child.text() + '` ';
+                } else if (tagName === 'pre') {
+                    const code = $child.find('code').text() || $child.text();
+                    if (code.trim().length < 50000) {
+                        text += '```\n' + code.trim() + '\n```\n\n';
+                    }
+                }
+            }
+        });
+        
+        return text;
     }
 
-    for (const child of children) {
-        markdown += processElement(child);
-    }
-
-    return markdown.trim();
+    const markdown = extractText($('body').length ? $('body') : $.root());
+    
+    return markdown
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 0 && line.length < 50000)
+        .join('\n')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
 }
 
 function parseDate(dateString: string): Date {
@@ -132,17 +117,21 @@ function fetchIssuesList(): ResultAsync<string[], Error> {
 }
 
 function parseIssueHtml(url: string, html: string): SmolArticle | null {
-    const $ = cheerio.load(html);
+    const $$ = cheerio.load(html);
 
-    const title = $('h1').first().text().trim();
+    const title = $$('h1').first().text().trim();
     if (!title) {
         return null;
     }
 
-    const dateStr = $('[datetime]').first().attr('datetime');
+    const dateStr = $$('[datetime]').first().attr('datetime');
     const date = dateStr ? parseDate(dateStr) : new Date();
 
-    const contentArea = $('.content-area').first();
+    const contentArea = $$('.content-area').first().length ? $$('.content-area').first() : 
+                        $$('article, main, [role="main"], .content, .article-content, .post-content, .entry-content').first().length ? 
+                        $$('article, main, [role="main"], .content, .article-content, .post-content, .entry-content').first() :
+                        $$('body').first();
+    
     const markdownContent = htmlToMarkdown(contentArea.html() || '');
 
     const article = {

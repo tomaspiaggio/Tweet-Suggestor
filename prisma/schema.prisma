@@ -1,0 +1,62 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model TwitterAccount {
+  id             String  @id
+  userName       String  @unique
+  name           String
+  isBlueVerified Boolean
+  tweets         Tweet[]
+}
+
+model Tweet {
+  id           String         @id
+  text         String
+  createdAt    DateTime
+  url          String         @unique
+  likeCount    Int
+  retweetCount Int
+  replyCount   Int
+  authorId     String
+  author       TwitterAccount @relation(fields: [authorId], references: [id])
+  scrapedAt    DateTime       @default(now())
+}
+
+model YouTubeVideo {
+  videoId       String   @id
+  title         String
+  channelName   String
+  channelId     String
+  datePublished DateTime
+  url           String   @unique
+  captions      Json
+  scrapedAt     DateTime @default(now())
+}
+
+model SmolIssue {
+  id              String   @id @default(cuid())
+  url             String   @unique
+  title           String
+  date            DateTime
+  markdownContent String
+  scrapedAt       DateTime @default(now())
+}
+
+model HackerNewsArticle {
+  id              String   @id @default(cuid())
+  url             String   @unique
+  hnUrl           String
+  title           String
+  domain          String?
+  markdownContent String
+  scrapedAt       DateTime @default(now())
+}

@@ -10,7 +10,9 @@
     "test": "bun test",
     "test:youtube": "bun test tests/scrapers/youtube.test.ts",
     "test:twitter": "bun test tests/scrapers/twitter.test.ts",
-    "test:smol": "bun test tests/scrapers/smol.test.ts"
+    "test:smol": "bun test tests/scrapers/smol.test.ts",
+    "test:hackernews": "bun test tests/scrapers/hackernews.test.ts",
+    "test:db": "bun test tests/db/ingest.test.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",
@@ -24,11 +26,17 @@
   },
   "dependencies": {
     "@ai-sdk/cerebras": "^2.0.8",
+    "@libsql/client": "^0.17.0",
+    "@openrouter/ai-sdk-provider": "^1.5.4",
+    "@prisma/adapter-libsql": "^7.2.0",
+    "@prisma/client": "^7.2.0",
     "ai": "^6.0.30",
     "apify-client": "^2.21.0",
     "cheerio": "^1.1.2",
     "eslint-plugin-neverthrow": "^1.1.4",
     "neverthrow": "^8.2.0",
+    "playwright": "^1.57.0",
+    "prisma": "^7.2.0",
     "zod": "^4.3.5"
   }
 }

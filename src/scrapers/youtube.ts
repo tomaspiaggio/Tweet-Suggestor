@@ -3,20 +3,22 @@ import { ResultAsync, okAsync, errAsync } from "neverthrow";
 import { z } from "zod";
 
 const VideoInformationSchema = z.object({
-    title: z.string(),
-    channelName: z.string(),
-    channelID: z.string().transform((val) => val),
-    datePublished: z.string().or(z.date()).transform((val) => {
+    title: z.string().min(1),
+    channelName: z.string().min(1),
+    channelID: z.string().min(1).transform((val) => val),
+    datePublished: z.preprocess((val) => {
+        if (val == null) return undefined;
         if (val instanceof Date) return val;
-        return new Date(val);
-    }),
-    videoId: z.string(),
-    captions: z.array(z.string()),
+        if (typeof val === "string") return new Date(val);
+        return undefined;
+    }, z.date()),
+    videoId: z.string().min(1),
+    captions: z.array(z.string().nullable()).optional().default([]).transform((captions) =>
+        captions.filter((caption): caption is string => typeof caption === "string")
+    ),
 });
 
 export type VideoInformation = z.infer<typeof VideoInformationSchema>;
-
-const VideoInformationArraySchema = z.array(VideoInformationSchema);
 
 export function scrapeVideoBatch(videoUrls: string[]): ResultAsync<VideoInformation[], Error> {
     if (process.env.APIFY_API_KEY == null) {
@@ -70,10 +72,26 @@ export function scrapeVideoBatch(videoUrls: string[]): ResultAsync<VideoInformat
             ).map((response) => response.items)
         )
         .andThen((items) => {
-            const parseResult = VideoInformationArraySchema.safeParse(items);
-            if (!parseResult.success) {
-                return errAsync(new Error(`Validation error: ${parseResult.error.message}`));
+            const videos: VideoInformation[] = [];
+            const errors: string[] = [];
+
+            for (const item of items) {
+                const parseResult = VideoInformationSchema.safeParse(item);
+                if (parseResult.success) {
+                    videos.push(parseResult.data);
+                } else {
+                    errors.push(parseResult.error.message);
+                }
             }
-            return okAsync(parseResult.data);
+
+            if (videos.length === 0) {
+                return errAsync(new Error(`Validation error: ${errors.join("; ")}`));
+            }
+
+            if (errors.length > 0) {
+                console.warn(`Skipped ${errors.length} invalid videos`);
+            }
+
+            return okAsync(videos);
         });
 }
